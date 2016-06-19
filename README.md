@@ -1,6 +1,6 @@
 Able to compile .cpp code as .cu by:
 
-	``` nvcc -x cu file.cpp ```
+	nvcc -x cu file.cpp
 
 ---
 
