@@ -10,6 +10,9 @@ genetic_serial: $(OBJECTS) point.h
 
 genetic_omp: $(OBJECTS) point.h
 	g++-4.9 -o $@ $(CXXFLAGS) $(OBJECTS) $(LDFLAGS)
+	
+genetic_cu: $(OBJECTS) point.h
+	nvcc -x cu $(CXXFLAGS) $(OBJECTS) $(LDFLAGS)
 
 clean:
 	rm genetic_omp $(OBJECTS)
