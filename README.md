@@ -1,6 +1,8 @@
 > Able to compile .cpp code as .cu by:
 	`` nvcc -x cu file.cpp ``
 
+---
+
 Portable program that realize the algorithm for polygonal image generation proposed by Roger Alsin in his blog (www.rogeralsing.com).
 
 The original code was a .net program, I realized a portable C++ version. This version seems 10/20 times faster than Roger .net code.
@@ -31,6 +33,5 @@ News of this version:
 - Load/Save progress files and bitmaps.
 - Doesn't depend anymore from SDL_gfx
 
-TODO: Parallel processing.
-
-gabrielegreco@gmail.com
+original version made by:
+	gabrielegreco@gmail.com
