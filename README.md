@@ -1,4 +1,4 @@
-- Able to compile .cpp code as .cu by:
+Able to compile .cpp code as .cu by:
 
 	``` nvcc -x cu file.cpp ```
 
@@ -14,7 +14,7 @@ Provided you have SDL development libraries installed you can compile it with "m
 
 To execute it:
 
-	``` ./genetic image.bmp [progressfile] ```
+	./genetic image.bmp [progressfile]
 
 Image must be a 32bit BMP image, resolution doesn't matter, but the smaller the image is the faster the algorithm will be.
 
