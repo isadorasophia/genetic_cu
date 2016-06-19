@@ -1,4 +1,5 @@
 - Able to compile .cpp code as .cu by:
+
 	``` nvcc -x cu file.cpp ```
 
 ---
@@ -32,6 +33,8 @@ News of this version:
 - View original image on the right.
 - Load/Save progress files and bitmaps.
 - Doesn't depend anymore from SDL_gfx
+
+---
 
 original version made by:
 	gabrielegreco@gmail.com
