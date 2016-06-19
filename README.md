@@ -1,5 +1,5 @@
-> Able to compile .cpp code as .cu by:
-	`` nvcc -x cu file.cpp ``
+- Able to compile .cpp code as .cu by:
+	``` nvcc -x cu file.cpp ```
 
 ---
 
