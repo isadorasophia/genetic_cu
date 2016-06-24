@@ -3,28 +3,28 @@
 #include <iostream>
 
 /* -- thrust library -- */
-#include <thrust/sort.h>
-#include <thrust/reduce.h>
+// #include <thrust/sort.h>
+// #include <thrust/reduce.h>
 
 /* Find min. and max. value from a vector! */
-inline void find_min_max(thrust::device_vector<int> &dev_vec, int *min, int *max){
-    thrust::pair<thrust::device_vector<int>::iterator, thrust::device_vector<int>::iterator> tuple;
+// inline void find_min_max(thrust::device_vector<int> &dev_vec, int *min, int *max){
+//     thrust::pair<thrust::device_vector<int>::iterator, thrust::device_vector<int>::iterator> tuple;
 
-    tuple = thrust::minmax_element(dev_vec.begin(), dev_vec.end());
+//     tuple = thrust::minmax_element(dev_vec.begin(), dev_vec.end());
 
-    *min = *(tuple.first);
-    *max = *(tuple.second);
-}
+//     *min = *(tuple.first);
+//     *max = *(tuple.second);
+// }
 
-/* Find polygon, still figuring out way to receive vx and vy */
-struct find_poly
-{
-    __host__ __device__
-    float operator() (thrust::device_vector vx, thrust::device_vector vy)
-    {
-        return x * x;
-    }
-};
+// /* Find polygon, still figuring out way to receive vx and vy */
+// struct find_poly
+// {
+//     __host__ __device__
+//     float operator() (thrust::device_vector vx, thrust::device_vector vy)
+//     {
+//         return x * x;
+//     }
+// };
 
 uint64_t Image::
 Compare(const Image &src) const {
@@ -79,11 +79,11 @@ Polygon(const Sint16 * vx, const Sint16 * vy, int n, Uint32 color)
     uint32_t B = (color >> 8) & 0xff;
 
     /* -- old code -- */
-    // int gfxPrimitivesPolyInts[n];
+    int gfxPrimitivesPolyInts[n];
 
     /* Initialize memory */
-    thrust::host_vector<int>   gfxPrimitivesPolyInts_h(n); // used by user (host)
-    thrust::device_vector<int> gfxPrimitivesPolyInts_d(n); // used by GPU (device)
+    // thrust::host_vector<int>   gfxPrimitivesPolyInts_h(n); // used by user (host)
+    // thrust::device_vector<int> gfxPrimitivesPolyInts_d(n); // used by GPU (device)
 
     R *= alpha;
     G *= alpha;
@@ -104,29 +104,29 @@ Polygon(const Sint16 * vx, const Sint16 * vy, int n, Uint32 color)
      * Determine Y maxima 
      */
     /* Deal with memory */
-    thrust::host_vector<int>   vx_h(n); // used by user (host)
-    thrust::device_vector<int> vx_d(n); // used by GPU (device)
+    // thrust::host_vector<int>   vx_h(n); // used by user (host)
+    // thrust::device_vector<int> vx_d(n); // used by GPU (device)
 
-    thrust::host_vector<int>   vy_h(n); // used by user (host)
-    thrust::device_vector<int> vy_d(n); // used by GPU (device)
+    // thrust::host_vector<int>   vy_h(n); // used by user (host)
+    // thrust::device_vector<int> vy_d(n); // used by GPU (device)
     
-    thrust::copy(vx, vx + n, vx_h.begin());
-    thrust::copy(vy, vy + n, vy_h.begin());
+    // thrust::copy(vx, vx + n, vx_h.begin());
+    // thrust::copy(vy, vy + n, vy_h.begin());
 
     /* Find min. and max. */
-    vx_d = vx_h;
-    find_min_max(vx_d, &miny, &maxy);
+    // vx_d = vx_h;
+    // find_min_max(vx_d, &miny, &maxy);
 
     /* -- old code -- */
-    // miny = vy[0];
-    // maxy = vy[0];
-    // for (i = 1; (i < n); i++) {
-    //     if (vy[i] < miny) {
-    //         miny = vy[i];
-    //     } else if (vy[i] > maxy) {
-    //         maxy = vy[i];
-    //     }
-    // }
+    miny = vy[0];
+    maxy = vy[0];
+    for (i = 1; (i < n); i++) {
+        if (vy[i] < miny) {
+            miny = vy[i];
+        } else if (vy[i] > maxy) {
+            maxy = vy[i];
+        }
+    }
 
     /*
      * [HOT AREA] Draw, scanning y 
@@ -156,18 +156,18 @@ Polygon(const Sint16 * vx, const Sint16 * vy, int n, Uint32 color)
             }
 
             if ( ((y >= y1) && (y < y2)) || ((y == maxy) && (y > y1) && (y <= y2)) ) {
-                gfxPrimitivesPolyInts_h[ints++] = ((65536 * (y - y1)) / (y2 - y1)) * (x2 - x1) + (65536 * x1);
+                gfxPrimitivesPolyInts[ints++] = ((65536 * (y - y1)) / (y2 - y1)) * (x2 - x1) + (65536 * x1);
             }
         }
 
         // copy host to device
-        gfxPrimitivesPolyInts_d = gfxPrimitivesPolyInts_h;
+        // gfxPrimitivesPolyInts_d = gfxPrimitivesPolyInts_h;
 
         // sort it, given an array and its size
-        thrust::sort(gfxPrimitivesPolyInts.begin(), gfxPrimitivesPolyInts.end());
+        // thrust::sort(gfxPrimitivesPolyInts.begin(), gfxPrimitivesPolyInts.end());
 
         /* -- old code -- */
-        // qsort(gfxPrimitivesPolyInts, ints, sizeof(int), CompareInt);
+        qsort(gfxPrimitivesPolyInts, ints, sizeof(int), CompareInt);
 
         /* -- print into the screen -- */
         for (i = 0; (i < ints); i += 2) {
