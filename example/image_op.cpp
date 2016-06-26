@@ -36,12 +36,11 @@ __global__ void convolution(const unsigned char *s, const unsigned char *d, uint
             int eb = (int)(dline[3]) - (int)(sline[3]);
 #endif
 
-            atomicAdd(&error[0], ((er * er) + (eb * eb) + (eg * eg)));
+            atomicAdd(&(error[0]), ((er * er) + (eb * eb) + (eg * eg)));
             //error[0] += ((er * er) + (eb * eb) + (eg * eg));
 }
 
 uint64_t compare(const Image &src) {
-    uint64_t error = 0;
     const unsigned char *s = (const unsigned char *)src.surface_->pixels;
     const unsigned char *d = (const unsigned char *)surface_->pixels;
 
