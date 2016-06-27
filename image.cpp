@@ -1,5 +1,8 @@
 #include "image.h"
 
+/* cuda header */
+#include "image_op.h"
+
 #include <iostream>
 
 /* -- thrust library -- */
@@ -38,28 +41,49 @@ Compare(const Image &src) const {
     bpp *= 2;
     pitch *= 2;
 #endif
-    while (--h) {
-        const unsigned char *dline = d, *sline = s;
-        int w = surface_->w;
 
-        while (--w) { // expect pixels as RGBA!
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-            int er = (int)(dline[0]) - (int)(sline[0]);
-            int eg = (int)(dline[1]) - (int)(sline[1]);
-            int eb = (int)(dline[2]) - (int)(sline[2]);
-#else
-            int er = (int)(dline[1]) - (int)(sline[1]);
-            int eg = (int)(dline[2]) - (int)(sline[2]);
-            int eb = (int)(dline[3]) - (int)(sline[3]);
-#endif
-            error += ((er * er) + (eb * eb) + (eg * eg));
+//     int f = 0;
 
-            dline += bpp;
-            sline += bpp;
-        }
-        d += pitch;
-        s += pitch;
-    }
+//     /* --- old code --- */
+//     while (--h) {
+//         const unsigned char *dline = d, *sline = s;
+//         int w = surface_->w;
+
+//         while (--w) { // expect pixels as RGBA!
+// /* Correct is little endian */
+// #if SDL_BYTEORDER == SDL_BIG_ENDIAN
+//             int er = (int)(dline[0]) - (int)(sline[0]);
+//             int eg = (int)(dline[1]) - (int)(sline[1]);
+//             int eb = (int)(dline[2]) - (int)(sline[2]);
+// #else
+//             int er = (int)(dline[1]) - (int)(sline[1]);
+//             int eg = (int)(dline[2]) - (int)(sline[2]);
+//             int eb = (int)(dline[3]) - (int)(sline[3]);
+// #endif
+//             error += ((er * er) + (eb * eb) + (eg * eg));
+
+//             dline += bpp;
+//             sline += bpp;
+
+//             f += bpp;
+//         }
+//         d += pitch;
+//         s += pitch;
+
+//         f += pitch;
+//     }
+
+//     printf("f: %d\n", f);
+
+//     return error;
+
+    /* --- cuda implementation --- */
+    int w = surface_->w;
+
+    error = compare_cu(s, d, pitch, bpp, h, w);
+
+    // printf("pitch: %d bpp: %d h: %d w: %d e: %lu", pitch, bpp, h, w, error);
+
     return error;
 }
 
