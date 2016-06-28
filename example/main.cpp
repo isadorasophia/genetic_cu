@@ -1,9 +1,9 @@
 #include <cstdio>
 #include <algorithm>
 
-#define SIZE 1000000
+#include "image_op.h"
 
-extern void sort (int* array, int size);
+#define SIZE 1000000
 
 int comp( const void* a, const void* b ) {
     return ( *( int* )a - *( int* )b );

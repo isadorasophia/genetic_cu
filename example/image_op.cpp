@@ -1,4 +1,6 @@
 /* -- thrust library -- */
+#include "image_op.h"
+
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include <thrust/copy.h>
@@ -11,82 +13,84 @@
 #include <thrust/functional.h>
 #include <thrust/random.h>
 
-__global__ void convolution(const unsigned char *s, const unsigned char *d, uint64_t *error, uint16_t pitch, uint16_t bpp, int h, int w) {
-            
-            int i = blockDim.x * blockIdx.x  + threadIdx.x;
-            int dlineIterator = i%w;
-            int dIterator = (i/w)%h;
-            d += pitch*dIterator;
-            s += pitch*dIterator;
+#define TILE_WIDTH 16
+#define HEIGHT 1080
 
+#define uint64_t unsigned long int
 
-            const unsigned char *dline = d;
-            const unsigned char *sline = s;
+__global__ void find_error(const unsigned char *s, const unsigned char *d, uint64_t *error, uint16_t pitch, uint16_t bpp, int h, int w) {
+    extern __shared__ uint64_t d_errors[]; // shared error data
 
-            dline += bpp*dlineIterator;
-            sline += bpp*dlineIterator;
-           
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-            int er = (int)(dline[0]) - (int)(sline[0]);
-            int eg = (int)(dline[1]) - (int)(sline[1]);
-            int eb = (int)(dline[2]) - (int)(sline[2]);
-#else
-            int er = (int)(dline[1]) - (int)(sline[1]);
-            int eg = (int)(dline[2]) - (int)(sline[2]);
-            int eb = (int)(dline[3]) - (int)(sline[3]);
-#endif
+    unsigned int row = blockDim.x * blockIdx.x + blockIdx.x;
+    unsigned int col = blockDim.y * blockIdx.y + blockIdx.y;
 
-            atomicAdd(&(error[0]), ((er * er) + (eb * eb) + (eg * eg)));
-            //error[0] += ((er * er) + (eb * eb) + (eg * eg));
+    /* Initialize */
+    if (row < h && col == 0) {
+        d_errors[row] = 0;
+    }
+
+    __syncthreads();
+
+    /* Get correct position */
+    const unsigned char *dline = d, *sline = s;
+
+    dline += pitch * row + bpp * col;
+    sline += pitch * row + bpp * col;
+
+    /* Estimate error */
+    int er = (int)(dline[1]) - (int)(sline[1]);
+    int eg = (int)(dline[2]) - (int)(sline[2]);
+    int eb = (int)(dline[3]) - (int)(sline[3]);
+
+    uint64_t f_e = (er * er) + (eb * eb) + (eg * eg);
+
+    atomicAdd(&d_errors[row], f_e);
+
+    __syncthreads();
+
+    /* Add final result */
+    if (row < h && col == 0) {
+        atomicAdd(error, d_errors[row]);
+    }
 }
 
-uint64_t compare(const Image &src) {
-    const unsigned char *s = (const unsigned char *)src.surface_->pixels;
-    const unsigned char *d = (const unsigned char *)surface_->pixels;
+uint64_t compare_cu(const unsigned char *s, const unsigned char *d, uint16_t pitch, uint16_t bpp, int h, int w) {
+    uint64_t error = 0;
+    unsigned int size = h * w;      // total of pixels
 
-    const unsigned char *d_s, *d_d;
-    int h = surface_->h;
-    int w = surface_->w;
-    /* Nao tenho certeza do sizeof()*h*w!!! */
-    cudaMalloc(d_s, sizeof(const unsigned char)*h*w); /*COMO PEGAR O TAMANHO DELES PARA DAR MALLOC???? */
-    cudaMalloc(d_d, sizeof(const unsigned char)*h*w); /*COMO PEGAR O TAMANHO DELES PARA DAR MALLOC???? */
+    /* --- initialize data --- */
+    unsigned char *d_s, *d_d; // device arrays
+    uint64_t* d_error;        // device error
 
-    cudaMemcpy(d_s, s, sizeof(const unsigned char)*h*w,  cudaMemcpyHostToDevice);
-    cudaMemcpy(d_d, d, sizeof(const unsigned char)*h*w,  cudaMemcpyHostToDevice);
+    /* --- create buffer --- */
+    cudaMalloc((void **) &d_s, sizeof(const unsigned char) * size);
+    cudaMalloc((void **) &d_d, sizeof(const unsigned char) * size);
+    cudaMalloc((void **) &d_error, sizeof(uint64_t));
 
-    uint64_t *error = (uint64_t *)malloc(sizeof(uint64_t));
-    error[0] = 0;
+    /* --- offload sender --- */
+    cudaMemcpy(d_s, s, sizeof(const unsigned char) * size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_d, d, sizeof(const unsigned char) * size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_error, &error, sizeof(uint64_t), cudaMemcpyHostToDevice);
 
-    uint64_t *d_error;
-    cudaMalloc(d_error, sizeof(uint64_t));
-    cudaMemcpy(d_error, error, sizeof(uint64_t),  cudaMemcpyHostToDevice);
-    uint16_t pitch = surface_->pitch;
-    uint16_t bpp = surface_->format->BytesPerPixel;
-#if 0
-    bpp *= 2;
-    pitch *= 2;
-#endif
+    /* --- kernel code --- */
+    /* get dimensions */
+    dim3 dimGrid(ceil((float)w/TILE_WIDTH), ceil((float)h/TILE_WIDTH), 1);
+    dim3 dimBlock(TILE_WIDTH, TILE_WIDTH, 1);
 
-    int iterations = h*w;
-
-    int blockDimension = 128;
-    int threads = iterations;
-    int threadsPerBlock = ceil(threads/(float)blockDimension);
-
-    calculaErro<<<blockDimension, threadsPerBlock>>>(d_s, d_d, d_error, pitch, bpp, h, w);
+    find_error <<< dimGrid, dimBlock, h >>> (d_s, d_d, d_error, pitch, bpp, h, w);
     
-    cudaMemcpy(error, d_error, sizeof(uint64_t), cudaMemcpyDeviceToHost);           
+    /* --- offload receiver --- */
+    cudaMemcpy(&error, d_error, sizeof(uint64_t), cudaMemcpyDeviceToHost);
+
+    /* --- clean up --- */
     cudaFree(d_s);
     cudaFree(d_d);
     cudaFree(d_error);
-    return error[0];
+
+    return error;
 }
 
-// void Polygon_cuda(const int16_t* vx, const int16_t* vy, int n, uint32_t color) {
-//     return;
-// }
-
-void sort (int* array, int size) {
+void sort(int* array, int size) {
     thrust::host_vector<int> a_h(size);
     thrust::device_vector<int> a_d;
 

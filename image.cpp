@@ -42,8 +42,6 @@ Compare(const Image &src) const {
     pitch *= 2;
 #endif
 
-//     int f = 0;
-
 //     /* --- old code --- */
 //     while (--h) {
 //         const unsigned char *dline = d, *sline = s;
@@ -64,22 +62,31 @@ Compare(const Image &src) const {
 
 //             dline += bpp;
 //             sline += bpp;
-
-//             f += bpp;
 //         }
+
 //         d += pitch;
 //         s += pitch;
-
-//         f += pitch;
 //     }
 
-//     printf("f: %d\n", f);
+    /* --- implementation similar to gpu --- */
+    // for (int i = 0; i < h; i++) {
+    //     const unsigned char *dline, *sline;
+    //     int w = surface_->w;
 
-//     return error;
+    //     for (int j = 0; j < w; j++) { // expect pixels as RGBA!
+    //         dline = d + pitch * i + bpp * j;
+    //         sline = s + pitch * i + bpp * j;
+
+    //         int er = (int)(dline[1]) - (int)(sline[1]);
+    //         int eg = (int)(dline[2]) - (int)(sline[2]);
+    //         int eb = (int)(dline[3]) - (int)(sline[3]);
+
+    //         error += ((er * er) + (eb * eb) + (eg * eg));
+    //     }
+    // }
 
     /* --- cuda implementation --- */
     int w = surface_->w;
-
     error = compare_cu(s, d, pitch, bpp, h, w);
 
     // printf("pitch: %d bpp: %d h: %d w: %d e: %lu", pitch, bpp, h, w, error);
