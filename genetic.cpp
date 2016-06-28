@@ -331,6 +331,9 @@ int main(int argc, char *argv[])
 {
     int width = 640;
     int height = 480;
+
+    int t_time = 0;
+
     Image *source = NULL;
     std::string basename = "noname";
     std::string workfilename;
@@ -446,21 +449,30 @@ int main(int argc, char *argv[])
             t_elapsed = 1000000 * (t_stop.tv_sec - t_start.tv_sec);
             t_elapsed += t_stop.tv_usec - t_start.tv_usec;
 
+            t_time += t_elapsed;
+
             if (now > 0) {
-                std::cerr << "Iteration:" << counter 
-                          << " Poly:" << gen.Poly() 
-                          << " IPS:" << (counter / now)
-                          << " Error:" << gen.Error()
-                          << " ET:" << t_elapsed
-                          << " Generation:" << gen.Generation() << "\n";
+                // std::cerr << "Iteration:" << counter 
+                //           << " Poly:" << gen.Poly() 
+                //           << " IPS:" << (counter / now)
+                //           << " Error:" << gen.Error()
+                //           << " ET:" << t_elapsed
+                //           << " Generation:" << gen.Generation() << "\n";
                 std::ostringstream os;
 
-                os << "Gen:" << gen.Generation() << " IPS:" << (counter / now) << " Err:" << gen.Error();
+                os << "Gen:" << gen.Generation() << " IPS:" << (counter / now) << " Err:" << gen.Error() << "Pol: " << gen.Poly();
                 SDL_WM_SetCaption(os.str().c_str(), NULL);
             }
 
             /* Restart */
             gettimeofday(&t_start, NULL);
+        
+            /* If it is over 15 polygons */
+            if (gen.Poly() > 15) {
+                std::cout << "Elapsed time: " << t_time << ", after " << gen.Generation() << " generations.\n";
+
+                return 0;
+            }
         }
     }
 }

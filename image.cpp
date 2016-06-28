@@ -1,7 +1,9 @@
 #include "image.h"
 
 /* cuda header */
+#ifdef CUDA
 #include "image_op.h"
+#endif
 
 #include <iostream>
 
@@ -37,59 +39,38 @@ Compare(const Image &src) const {
     uint16_t pitch = surface_->pitch;
     uint16_t bpp = surface_->format->BytesPerPixel;
     int h = surface_->h;
+
 #if 0
     bpp *= 2;
     pitch *= 2;
 #endif
 
-//     /* --- old code --- */
-//     while (--h) {
-//         const unsigned char *dline = d, *sline = s;
-//         int w = surface_->w;
-
-//         while (--w) { // expect pixels as RGBA!
-// /* Correct is little endian */
-// #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-//             int er = (int)(dline[0]) - (int)(sline[0]);
-//             int eg = (int)(dline[1]) - (int)(sline[1]);
-//             int eb = (int)(dline[2]) - (int)(sline[2]);
-// #else
-//             int er = (int)(dline[1]) - (int)(sline[1]);
-//             int eg = (int)(dline[2]) - (int)(sline[2]);
-//             int eb = (int)(dline[3]) - (int)(sline[3]);
-// #endif
-//             error += ((er * er) + (eb * eb) + (eg * eg));
-
-//             dline += bpp;
-//             sline += bpp;
-//         }
-
-//         d += pitch;
-//         s += pitch;
-//     }
-
-    /* --- implementation similar to gpu --- */
-    // for (int i = 0; i < h; i++) {
-    //     const unsigned char *dline, *sline;
-    //     int w = surface_->w;
-
-    //     for (int j = 0; j < w; j++) { // expect pixels as RGBA!
-    //         dline = d + pitch * i + bpp * j;
-    //         sline = s + pitch * i + bpp * j;
-
-    //         int er = (int)(dline[1]) - (int)(sline[1]);
-    //         int eg = (int)(dline[2]) - (int)(sline[2]);
-    //         int eb = (int)(dline[3]) - (int)(sline[3]);
-
-    //         error += ((er * er) + (eb * eb) + (eg * eg));
-    //     }
-    // }
-
+#ifdef CUDA
     /* --- cuda implementation --- */
     int w = surface_->w;
-    error = compare_cu(s, d, pitch, bpp, h, w);
 
-    // printf("pitch: %d bpp: %d h: %d w: %d e: %lu", pitch, bpp, h, w, error);
+    error = compare_cu(s, d, pitch, bpp, h, w);
+#else
+    /* --- old code --- */
+    while (--h) {
+        const unsigned char *dline = d, *sline = s;
+        int w = surface_->w;
+
+        while (--w) { // expect pixels as RGBA!
+            int er = (int)(dline[1]) - (int)(sline[1]);
+            int eg = (int)(dline[2]) - (int)(sline[2]);
+            int eb = (int)(dline[3]) - (int)(sline[3]);
+
+            error += ((er * er) + (eb * eb) + (eg * eg));
+
+            dline += bpp;
+            sline += bpp;
+        }
+
+        d += pitch;
+        s += pitch;
+    }
+#endif
 
     return error;
 }
